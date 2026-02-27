@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# script numero 1
+# A lancer en root
+# Script d'installation pour VM Inception
+
+set -e
+
+# Couleurs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# 0. Vérification root
+if [ "$EUID" -ne 0 ]; then 
+    log_error "Ce script doit être exécuté en ROOT"
+    exit 1
+fi
+
+log_info "=== Installation de la VM Inception ==="
+
+# 1. Mise à jour et Installation sudo
+apt-get update -y
+apt-get install -y sudo ca-certificates curl gnupg lsb-release git tree make openssh-server ufw
+
+# 2. Configuration de l'utilisateur (INTERACTIF)
+echo -e "${YELLOW}--- Configuration de l'utilisateur ---${NC}"
+# On essaie de deviner si un utilisateur existe déjà (le premier après root)
+SUGGESTED_USER=$(awk -F: '$3 >= 1000 && $3 < 60000 { print $1 }' /etc/passwd | head -n 1)
+
+echo -n -e "Entrez le login de l'utilisateur à ajouter au groupe sudo [Défaut: $SUGGESTED_USER] : "
+read SELECTED_USER
+
+USER_TO_ADD=${SELECTED_USER:-$SUGGESTED_USER}
+
+if [ -z "$USER_TO_ADD" ]; then
+    log_error "Aucun utilisateur spécifié. Abandon."
+    exit 1
+fi
+
+if id "$USER_TO_ADD" &>/dev/null; then
+    usermod -aG sudo "$USER_TO_ADD"
+    log_info "Utilisateur $USER_TO_ADD ajouté au groupe sudo avec succès."
+else
+    log_error "L'utilisateur '$USER_TO_ADD' n'existe pas."
+    exit 1
+fi
+
+# 3. Configuration SSH
+log_info "Configuration SSH..."
+sed -i 's/#Port 22/Port 4242/' /etc/ssh/sshd_config
+sed -i 's/^Port 22/Port 4242/' /etc/ssh/sshd_config
+log_info "Port SSH changé en 4242"
+systemctl enable --now ssh
+systemctl restart ssh
+
+# 4. Configuration Pare-feu (UFW)
+log_info "Configuration UFW..."
+# --force évite "Command may disrupt network connections. Proceed? (y|n)"
+ufw --force enable
+ufw allow 4242/tcp
+ufw allow 443/tcp
+log_info "Règles UFW appliquées :"
+ufw status
+
+# 5. Nettoyage
+apt-get autoremove -y && apt-get clean
+
+log_info "=== VM prête pour l'étape suivante (docker.sh) ==="
+log_info "Utilisateur configuré : $USER_TO_ADD"
+
+# 6. Lancement automatique de install-docker.sh si disponible
+if [ -f "/home/$USER_TO_ADD/install-docker.sh" ]; then
+    log_info "Lancement de install-docker.sh..."
+    cd "/home/$USER_TO_ADD"
+    SUDO_USER="$USER_TO_ADD" bash install-docker.sh
+else
+    log_warn "install-docker.sh non trouvé. Lance-le manuellement avec sudo."
+fi
