@@ -1,8 +1,0 @@
-[mysqld]
-skip-networking=0
-user = mysqluser
-datadir = /var/lib/mysql
-port = 3306
-bind-address = 0.0.0.0
-require_secure_transport=OFF
-ssl=0

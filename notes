@@ -1,0 +1,11 @@
+connection à adminer :
+Système: MySQL
+Serveur: mariadb
+Utilisateur: MYSQL_USER
+Mot de passe: MYSQL_PASSWORD
+Base de données: MYSQL_DATABASE
+
+connection à wp-admin
+Username: WORDPRESS_ADMIN_USER
+Password: WORDPRESS_ADMIN_PASSWORD
+
