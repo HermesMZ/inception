@@ -1,7 +1,46 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 echo "============ START INIT WORDPRESS ==============="
+
+# --- FONCTION POUR RÉCUPÉRER LES SECRETS ---
+get_secret() {
+    local var_name=$1
+    local file_var_name="${var_name}_FILE"
+    
+    # On vérifie si la variable _FILE existe (priorité aux secrets)
+    if [ -n "${!file_var_name:-}" ]; then
+        cat "${!file_var_name}"
+    else
+        # Sinon on prend la variable classique
+        echo "${!var_name:-}"
+    fi
+}
+
+# Liste des noms de clés attendues par WordPress
+KEYS="WORDPRESS_AUTH_KEY \
+WORDPRESS_SECURE_AUTH_KEY \
+WORDPRESS_LOGGED_IN_KEY \
+WORDPRESS_NONCE_KEY \
+WORDPRESS_AUTH_SALT \
+WORDPRESS_SECURE_AUTH_SALT \
+WORDPRESS_LOGGED_IN_SALT \
+WORDPRESS_NONCE_SALT \
+DB_PASSWORD \
+WORDPRESS_ADMIN_PASSWORD \
+WORDPRESS_USER_PASSWORD \
+REDIS_PASSWORD"
+
+echo "Configuration des Salts WordPress..."
+
+for key in $KEYS; do
+    val=$(get_secret "$key")
+    if [ -z "$val" ]; then
+        echo "Erreur : La clé $key est vide !"
+        exit 1
+    fi
+    export "$key"="$val"
+done
 
 # Créer /var/www/html si nécessaire
 mkdir -p /var/www/html
@@ -9,10 +48,10 @@ mkdir -p /var/www/html
 echo "============ ATTENTE MARIADB ==============="
 
 # Attendre que MariaDB soit prêt
-TIMEOUT=10
+TIMEOUT=30
 SECONDS=0
 echo "Waiting for MariaDB..."
-until mariadb -h"$WORDPRESS_DB_HOST" -u"$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" --ssl=0 -e "SELECT 1" >/dev/null 2>&1; do
+until mariadb -h"$WORDPRESS_DB_HOST" -u"$WORDPRESS_DB_USER" -p"$DB_PASSWORD" --ssl=0 -e "SELECT 1" >/dev/null 2>&1; do
   sleep 1
   SECONDS=$((SECONDS+1))
   if [ "$SECONDS" -ge "$TIMEOUT" ]; then
@@ -40,46 +79,34 @@ until nc -z "${REDIS_HOST}" "${REDIS_PORT:-6379}" 2>/dev/null; do
 done
 echo "Redis est accessible."
 
-# Créer wp-config.php avec Redis déjà configuré
-cat > /var/www/html/wp-config.php <<EOF
-<?php
-define('WP_HOME','https://' . '${DOMAIN_NAME}');
-define('WP_SITEURL','https://' . '${DOMAIN_NAME}');
+echo "================ GÉNÉRATION DU WP-CONFIG.PHP ================"
 
-define('DB_NAME', '${WORDPRESS_DB_NAME}');
-define('DB_USER', '${WORDPRESS_DB_USER}');
-define('DB_PASSWORD', '${WORDPRESS_DB_PASSWORD}');
-define('DB_HOST', '${WORDPRESS_DB_HOST}');
-define('DB_CHARSET', 'utf8mb4');
-define('DB_COLLATE', '');
+# On se place dans le dossier wordpress
+cd /var/www/html
 
-define('AUTH_KEY',         '${WORDPRESS_AUTH_KEY}');
-define('SECURE_AUTH_KEY',  '${WORDPRESS_SECURE_AUTH_KEY}');
-define('LOGGED_IN_KEY',    '${WORDPRESS_LOGGED_IN_KEY}');
-define('NONCE_KEY',        '${WORDPRESS_NONCE_KEY}');
-define('AUTH_SALT',        '${WORDPRESS_AUTH_SALT}');
-define('SECURE_AUTH_SALT', '${WORDPRESS_SECURE_AUTH_SALT}');
-define('LOGGED_IN_SALT',   '${WORDPRESS_LOGGED_IN_SALT}');
-define('NONCE_SALT',       '${WORDPRESS_NONCE_SALT}');
+# On crée le fichier de base avec les accès DB
+# Note : On utilise les variables locales remplies par get_secret au début du script
+wp config create \
+    --dbname="${WORDPRESS_DB_NAME}" \
+    --dbuser="${WORDPRESS_DB_USER}" \
+    --dbpass="${DB_PASSWORD}" \
+    --dbhost="${WORDPRESS_DB_HOST}" \
+    --path=/var/www/html --allow-root --force
 
-// Configuration Redis
-define('WP_REDIS_HOST', '${REDIS_HOST}');
-define('WP_REDIS_PORT', ${REDIS_PORT:-6379});
-define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD}');
-define('WP_REDIS_DATABASE', 0);
+# On injecte les Salts et Redis en bouclant sur tes secrets
+# C'est ici que ta boucle "KEYS" du début prend tout son sens
+for key in AUTH_KEY SECURE_AUTH_KEY LOGGED_IN_KEY NONCE_KEY AUTH_SALT SECURE_AUTH_SALT LOGGED_IN_SALT NONCE_SALT; do
+    var_name="WORDPRESS_$key"
+    wp config set "$key" "${!var_name}" --allow-root
+done
 
-\$table_prefix = 'wp_';
-
-define('WP_DEBUG', true);
-define('WP_DEBUG_LOG', true);
-define('WP_DEBUG_DISPLAY', true);
-
-if ( ! defined('ABSPATH') ) {
-    define('ABSPATH', __DIR__ . '/');
-}
-
-require_once ABSPATH . 'wp-settings.php';
-EOF
+# Configuration spécifique Redis et URL
+wp config set WP_HOME "https://${DOMAIN_NAME}" --allow-root
+wp config set WP_SITEURL "https://${DOMAIN_NAME}" --allow-root
+wp config set WP_REDIS_HOST "${REDIS_HOST}" --allow-root
+wp config set WP_REDIS_PORT "${REDIS_PORT:-6379}" --raw --allow-root
+wp config set WP_REDIS_PASSWORD "${REDIS_PASSWORD}" --allow-root
+wp config set WP_REDIS_DATABASE 0 --raw --allow-root
 
 chmod 644 /var/www/html/wp-config.php
 

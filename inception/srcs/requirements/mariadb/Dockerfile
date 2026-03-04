@@ -5,7 +5,7 @@ RUN adduser -D -u 1000 mysqluser
 
 # Installer MariaDB et bash
 RUN apk update && \
-    apk add --no-cache mariadb mariadb-client bash
+    apk add --no-cache mariadb mariadb-client bash netcat-openbsd
 
 # Création des dossiers nécessaires avec bons droits
 RUN mkdir -p /run/mysqld /var/lib/mysql && \

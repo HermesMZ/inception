@@ -3,7 +3,8 @@ FROM alpine:3.22
 # Installer vsftpd pour FTP
 RUN apk update && apk add --no-cache \
     vsftpd \
-    netcat-openbsd
+    netcat-openbsd \
+	bash
 
 # Créer le répertoire pour l'utilisateur FTP
 RUN mkdir -p /home/ftpuser/wordpress && \

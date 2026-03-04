@@ -10,6 +10,7 @@ RUN apk update && apk add --no-cache \
     php-openssl \
     php-ctype \
     php-json \
+    php-tokenizer \
     php-mbstring \
     php-xml \
     php-phar \
@@ -17,6 +18,7 @@ RUN apk update && apk add --no-cache \
     fcgi \
     netcat-openbsd \
     curl \
+	bash \
     less
 
 # Installer WP-CLI

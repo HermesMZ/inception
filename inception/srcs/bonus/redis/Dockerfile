@@ -1,6 +1,6 @@
 FROM alpine:3.22
 
-RUN apk add --no-cache redis
+RUN apk add --no-cache redis bash
 
 # Copier la configuration Redis
 COPY conf/redis.conf /etc/redis/redis.conf
