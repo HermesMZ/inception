@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Script de test pour le projet Inception
+# Vérifie la connectivité TLS/SSL, la persistance des données, l'isolation réseau de MariaDB, la connexion entre WordPress et MariaDB, ainsi que les bonus Redis et FTP
+# Attend que les services aient fini de démarrer avant de lancer les tests
+
 # ================= COLORS =================
 GREEN="\033[0;32m"
 RED="\033[0;31m"
@@ -120,3 +124,13 @@ fi
 # ================= DONE =================
 echo
 echo -e "${GREEN}All checks passed. Inception (with bonuses) is clean ✅${NC}"
+
+
+
+# info "Checking Adminer availability..."
+# if curl -k -I https://$(USER).42.fr/adminer 2>/dev/null | grep -q "200 OK" || \
+#    curl -k -I https://$(USER).42.fr:8080 2>/dev/null | grep -q "200 OK"; then
+#     ok "Adminer is reachable"
+# else
+#     ko "Adminer is unreachable"
+# fi

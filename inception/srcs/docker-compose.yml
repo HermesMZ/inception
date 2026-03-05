@@ -94,7 +94,7 @@ services:
     depends_on:
       wordpress:
         condition: service_healthy
-      static:
+      dashboard:
         condition: service_healthy
     networks:
       - inception
@@ -183,9 +183,9 @@ services:
       retries: 3
       start_period: 10s
 
-  static:
-    container_name: static
-    build: ./bonus/static
+  dashboard:
+    container_name: dashboard
+    build: ./bonus/dashboard
     networks:
       - inception
     restart: always
@@ -201,21 +201,21 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/$USER/data/mariadb
+      device: /home/${USER}/data/mariadb
 
   wordpress_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/$USER/data/wordpress
+      device: /home/${USER}/data/wordpress
 
   portainer_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/$USER/data/portainer
+      device: /home/${USER}/data/portainer
 
 networks:
   inception:
