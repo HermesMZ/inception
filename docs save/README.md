@@ -97,7 +97,7 @@ The core architecture, service selection, and implementation decisions were made
 
 ## Project Description
 
-### Why Docker?
+### Docker Architecture
 
 This project uses **Docker** to containerize each service independently, ensuring:
 - **Isolation**: Each service runs in its own container
@@ -105,9 +105,7 @@ This project uses **Docker** to containerize each service independently, ensurin
 - **Scalability**: Easy to add or remove services
 - **Portability**: Can be deployed anywhere Docker runs
 
-### Project Structure
-
-The file organization follows a clear separation between mandatory and bonus services:
+### Sources Organization
 
 ```
 inception/
@@ -128,12 +126,6 @@ inception/
 │   ├── Makefile            # Build automation
 │   └──	Scripts/			# Different Shell scripts for setup and tests
 ```
-
-**Key Directories:**
-- **`requirements/`**: Mandatory services (NGINX, WordPress, MariaDB)
-- **`bonus/`**: Additional services for extra credit
-- **`secrets/`**: Docker secrets (not committed to git)
-- **`scripts/`**: Automation scripts for setup and testing
 
 ### Technical Choices
 

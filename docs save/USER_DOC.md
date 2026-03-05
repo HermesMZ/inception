@@ -41,7 +41,7 @@ Ensure you have:
 
 `make`, `make all` or `make up`.
 
-
+This command will:
 1. Build all Docker images (first time only).
 2. Create necessary network.
 3. Initialize services in the correct order.
@@ -50,11 +50,10 @@ Ensure you have:
 ### Stopping the Infrastructure
 
 **Graceful shutdown** (keeps data):
-
-``
+```bash
 make down
-``
-
+```
+This command will:
 1. Stop Services: Gracefully shut down all running containers.
 2. Cleanup: Remove containers and internal networks.
 3. Data Safety: Persistent data in /home/$USER/data is not deleted.
@@ -105,7 +104,7 @@ Stops the project and removes all images and networks.
 ``
 make fclean
 ``
-
+This command will:
 1. Runs make clean.
 2. Uses a temporary container to bypass permissions and delete all data in /home/$USER/data.
 3. Prunes the Docker system cache.
@@ -250,14 +249,13 @@ make logs
 **Specific service**:
 ```bash
 docker logs wordpress
+docker logs mariadb
+docker logs nginx
 ```
 
 **Follow logs in real-time**:
 ```bash
 docker logs -f wordpress
 ```
-
----
-
 
 For developer documentation and advanced configuration, see [DEV_DOC.md](DEV_DOC.md).

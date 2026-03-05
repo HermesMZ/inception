@@ -28,7 +28,7 @@ log_info "=== Installation de la VM Inception ==="
 
 # 1. Mise à jour et Installation sudo
 apt-get update -y
-apt-get install -y sudo ca-certificates curl gnupg lsb-release git tree make openssh-server ufw
+apt-get install -y sudo ca-certificates curl gnupg lsb-release tree make openssh-server ufw
 
 # 2. Configuration de l'utilisateur
 echo -e "${YELLOW}--- Configuration de l'utilisateur ---${NC}"
