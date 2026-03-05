@@ -4,15 +4,9 @@ COMPOSE = docker compose -f srcs/docker-compose.yml -p $(NAME)
 all: up
 
 up:
-	bash ./scripts/check_volumes.sh
+	@chmod +x ./scripts/check_volumes.sh
+	@bash ./scripts/check_volumes.sh
 	$(COMPOSE) up --build -d
-
-port:
-	$(COMPOSE) down
-	rm -rf /home/zoum/data/portainer
-	bash ./scripts/check_volumes.sh
-	$(COMPOSE) up --build -d
-	docker logs portainer
 
 down:
 	$(COMPOSE) down
@@ -25,7 +19,8 @@ restart:
 	$(COMPOSE) up --build -d
 
 test:
-	bash ./scripts/test-inception.sh
+	@chmod +x ./scripts/test-inception.sh
+	@bash ./scripts/test-inception.sh
 
 logs:
 	$(COMPOSE) logs
@@ -40,8 +35,9 @@ clean:
 	$(COMPOSE) down -v
 
 fclean: clean
-	docker system prune -af
-	docker network rm inception 2>/dev/null || true
+	@echo "Nettoyage des volumes via un conteneur temporaire..."
+	docker run --rm -v /home/$(USER)/data:/data alpine sh -c "rm -rf /data/*"
+	@docker system prune -af
 
 re: fclean all
 

@@ -3,6 +3,7 @@
 # Script numéro 3
 # Script de configuration du projet Inception
 # A lancer depuis l'utilisateur (sans sudo)
+# Ce script crée la structure de dossiers, les Dockerfiles vides, et le Makefile pour la partie obligatoire du projet Inception
 set -e
 
 # Couleurs
@@ -113,5 +114,5 @@ FROM	alpine:3.22
 EOF
 
 log_info "=== Configuration du projet terminée ! ==="
-log_info "Ton projet est prêt dans : $PROJECT_DIR"
-log_info "Ton domaine est prêt : https://$USER_LOGIN.42.fr"
+log_info "Projet prêt dans : $PROJECT_DIR"
+log_info "Domaine prêt : https://$USER_LOGIN.42.fr"

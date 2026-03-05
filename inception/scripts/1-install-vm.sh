@@ -2,7 +2,9 @@
 
 # script numero 1
 # A lancer en root
-# Script d'installation pour VM Inception
+# Script d'installation pour VM Inception Debian 12
+# Ce script prépare la VM pour l'installation de Docker et de l'environnement Inception
+# Il configure un utilisateur sudo, sécurise SSH, et met en place un pare-feu
 
 set -e
 
@@ -28,7 +30,7 @@ log_info "=== Installation de la VM Inception ==="
 apt-get update -y
 apt-get install -y sudo ca-certificates curl gnupg lsb-release git tree make openssh-server ufw
 
-# 2. Configuration de l'utilisateur (INTERACTIF)
+# 2. Configuration de l'utilisateur
 echo -e "${YELLOW}--- Configuration de l'utilisateur ---${NC}"
 # On essaie de deviner si un utilisateur existe déjà (le premier après root)
 SUGGESTED_USER=$(awk -F: '$3 >= 1000 && $3 < 60000 { print $1 }' /etc/passwd | head -n 1)
@@ -75,10 +77,16 @@ log_info "=== VM prête pour l'étape suivante (docker.sh) ==="
 log_info "Utilisateur configuré : $USER_TO_ADD"
 
 # 6. Lancement automatique de install-docker.sh si disponible
-if [ -f "/home/$USER_TO_ADD/install-docker.sh" ]; then
-    log_info "Lancement de install-docker.sh..."
+if [ -f "/home/$USER_TO_ADD/2-install-docker.sh" ]; then
+    log_info "Lancement de 2-install-docker.sh..."
     cd "/home/$USER_TO_ADD"
-    SUDO_USER="$USER_TO_ADD" bash install-docker.sh
+    SUDO_USER="$USER_TO_ADD" bash 2-install-docker.sh
 else
-    log_warn "install-docker.sh non trouvé. Lance-le manuellement avec sudo."
+    log_warn "2-install-docker.sh non trouvé. Lance-le manuellement avec sudo."
 fi
+
+log_info "Virtual Box - A configurer dans les redirections de port de la VM :"
+log_info "SSH : 4242"
+log_info "HTTPS : 443"
+
+log_info "Lancement de la VM terminée. Connectez-vous avec : ssh -p 4242 $USER_TO_ADD@localhost"

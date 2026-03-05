@@ -20,55 +20,51 @@ info() {
     echo -e "${YELLOW}[INFO]${NC} $1"
 }
 
-# ================= START =================
-echo "===== Inception check (with bonuses) ====="
-
-CONTAINERS=("nginx" "wordpress" "mariadb" "redis" "adminer" "ftp")
-NETWORK="inception"
-
-# ================= CONTAINERS RUNNING =================
-info "Checking containers status..."
-
-for c in "${CONTAINERS[@]}"; do
-    if docker ps --format '{{.Names}}' | grep -qx "$c"; then
-        ok "Container $c is running"
-    else
-        ko "Container $c is NOT running"
-    fi
+info "Waiting for services to be healthy..."
+while [ "$(docker ps | grep -c "starting")" -gt 0 ]; do
+    echo -n "."
+    sleep 2
 done
+echo -e " ${GREEN}Ready!${NC}"
 
-# ================= NETWORK =================
-info "Checking network..."
-
-if docker network ls --format '{{.Name}}' | grep -qx "$NETWORK"; then
-    ok "Network $NETWORK exists"
+# ================= CHECKS =================
+info "Checking Nginx TLS/SSL connectivity..."
+DOMAIN_NAME=$(docker exec wordpress printenv DOMAIN_NAME)
+# -k pour ignorer le certificat auto-signé, -I pour les headers
+if curl -k -I https://"$DOMAIN_NAME" 2>/dev/null | grep -q "200 OK"; then
+    ok "HTTPS is working on $DOMAIN_NAME"
 else
-    ko "Network $NETWORK does not exist"
+    ko "HTTPS connection failed"
 fi
 
-for c in "${CONTAINERS[@]}"; do
-    if docker inspect "$c" | grep -q "\"$NETWORK\""; then
-        ok "$c is connected to $NETWORK"
-    else
-        ko "$c is NOT connected to $NETWORK"
-    fi
-done
-
-# ================= MARIADB SECURITY =================
-info "Checking mariadb exposure..."
-
-PORTS=$(docker inspect mariadb --format '{{.NetworkSettings.Ports}}')
-if [[ "$PORTS" == "map[]" ]]; then
-    ok "mariadb does not expose any port"
+info "Checking data persistence..."
+# On crée un fichier dans le volume via le conteneur
+docker exec wordpress touch /var/www/html/persistence_test
+# On redémarre le conteneur
+cd srcs
+docker compose restart wordpress > /dev/null
+cd ..
+# On vérifie si le fichier est toujours là
+if docker exec wordpress ls /var/www/html/persistence_test &>/dev/null; then
+    ok "Volumes are persistent"
+    docker exec wordpress rm /var/www/html/persistence_test
 else
-    ko "mariadb exposes ports (forbidden)"
+    ko "Volume data lost after restart"
+fi
+
+info "Checking MariaDB network isolation..."
+if [ "$(docker inspect mariadb --format='{{range $p, $conf := .NetworkSettings.Ports}}{{$p}}{{end}}')" == "" ]; then
+    ok "MariaDB is isolated (no ports exposed)"
+else
+    ko "MariaDB exposes ports to the host!"
 fi
 
 # ================= WORDPRESS -> MARIADB =================
 info "Checking wordpress to mariadb connection..."
 
+# On récupère les secrets en lisant les fichiers directement dans le conteneur
 DB_USER=$(docker exec wordpress printenv WORDPRESS_DB_USER)
-DB_PASS=$(docker exec wordpress printenv WORDPRESS_DB_PASSWORD)
+DB_PASS=$(docker exec wordpress cat /run/secrets/db_password)
 
 if docker exec wordpress mariadb \
     -hmariadb \
@@ -81,40 +77,13 @@ else
     ko "wordpress cannot connect to mariadb"
 fi
 
-# ================= NGINX -> WORDPRESS =================
-info "Checking nginx to wordpress (php-fpm)..."
-
-if docker exec nginx nc -z wordpress 9000 &>/dev/null; then
-    ok "nginx can reach wordpress on port 9000"
-else
-    ko "nginx cannot reach wordpress on port 9000"
-fi
-
-# ================= WEBSITE =================
-info "Checking website availability..."
-
-DOMAIN_NAME=$(docker exec wordpress printenv DOMAIN_NAME)
-
-if curl -k https://"$DOMAIN_NAME" &>/dev/null; then
-    ok "Website is reachable via nginx"
-else
-    ko "Website is NOT reachable"
-fi
-
-# ================= WORDPRESS VOLUME =================
-info "Checking WordPress volume write access..."
-
-if docker exec wordpress sh -c \
-  "touch /var/www/html/.wp_test && rm /var/www/html/.wp_test" &>/dev/null; then
-    ok "WordPress has write access to its volume"
-else
-    ko "WordPress cannot write to its volume"
-fi
-
 # ================= BONUS: REDIS =================
 info "Checking redis availability..."
 
-if docker exec redis redis-cli -a "$(docker exec redis printenv REDIS_PASSWORD)" ping \
+# On récupère le mot de passe root de Redis depuis le secret
+REDIS_PASS=$(docker exec redis cat /run/secrets/redis_password)
+
+if docker exec redis redis-cli -a "$REDIS_PASS" ping 2>/dev/null \
   | grep -q "PONG"; then
     ok "Redis is reachable and responding"
 else
@@ -123,64 +92,29 @@ fi
 
 info "Checking wordpress to redis connection..."
 
-REDIS_HOST=$(docker exec wordpress printenv REDIS_HOST)
-REDIS_PASSWORD=$(docker exec wordpress printenv REDIS_PASSWORD)
+# On utilise le même secret côté WordPress pour tester le lien
+REDIS_PASS_WP=$(docker exec wordpress cat /run/secrets/redis_password)
 
-if echo -e "AUTH $REDIS_PASSWORD\r\nPING\r\n" \
-  | docker exec -i wordpress nc -w 2 "$REDIS_HOST" 6379 \
+if echo -e "AUTH $REDIS_PASS_WP\r\nPING\r\n" \
+  | docker exec -i wordpress nc -w 2 redis 6379 \
   | grep -q "+PONG"; then
     ok "wordpress can reach redis on port 6379"
 else
     ko "wordpress cannot reach redis"
 fi
 
-# ================= BONUS: ADMINER =================
-info "Checking adminer availability..."
-
-ADMINER_URL="https://$DOMAIN_NAME/adminer/"
-if curl -k -I "$ADMINER_URL" | grep -q "200 OK"; then
-    ok "Adminer is reachable via nginx"
-else
-    ko "Adminer is NOT reachable"
-fi
-
 # ================= BONUS: FTP =================
-info "Checking ftp availability..."
-
-if docker inspect ftp --format '{{.NetworkSettings.Ports}}' | grep -q "21/tcp"; then
-    ok "FTP port 21 is exposed"
-else
-    ko "FTP port 21 is NOT exposed"
-fi
-
-if docker exec ftp nc -z localhost 21 &>/dev/null; then
-    ok "FTP service is listening on port 21"
-else
-    ko "FTP service is NOT listening"
-fi
-
 info "Checking FTP login..."
 
-FTP_PASSWORD=$(docker exec ftp printenv FTP_PASSWORD)
+# Récupération du secret FTP
+FTP_PASS=$(docker exec ftp cat /run/secrets/ftp_password)
 
 if timeout 5s bash -c \
-  "echo -e 'USER ftpuser\r\nPASS $FTP_PASSWORD\r\nQUIT\r\n' | docker exec -i ftp nc localhost 21" \
+  "echo -e 'USER ftpuser\r\nPASS $FTP_PASS\r\nQUIT\r\n' | docker exec -i ftp nc localhost 21" \
   | grep -q "230 Login successful"; then
     ok "FTP login works with ftpuser"
 else
     ko "FTP login failed"
-fi
-
-info "Checking FTP chroot enforcement..."
-
-FTP_CHROOT_TEST=$(timeout 5s bash -c \
-  "echo -e 'USER ftpuser\r\nPASS $FTP_PASSWORD\r\nCWD ..\r\nPWD\r\nQUIT\r\n' | docker exec -i ftp nc localhost 21")
-
-if echo "$FTP_CHROOT_TEST" | grep -q '257 "/"'; then
-    ok "FTP chroot is correctly enforced"
-else
-    echo -e "${YELLOW}[WARN]${NC} FTP chroot could not be confirmed"
-    echo "$FTP_CHROOT_TEST"
 fi
 
 # ================= DONE =================

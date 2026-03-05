@@ -2,6 +2,7 @@
 
 # Script d'installation de Docker
 # A lancer avec sudo et pas en root direct depuis le home de l'utilisateur
+# Ce script installe Docker, configure les permissions, et prépare l'environnement pour Inception
 set -e
 
 # Couleurs
@@ -19,7 +20,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# Récupération du login de l'utilisateur (celui qui a lancé sudo)
+# Récupération du login de l'utilisateur
 USER_LOGIN=${SUDO_USER:-$USER}
 
 log_info "=== Installation de Docker ==="
@@ -29,7 +30,7 @@ log_info "Installation des dépendances système..."
 apt-get update -y
 apt-get install -y ca-certificates curl gnupg lsb-release
 
-# 2. Configuration du dépôt Docker officiel (Méthode Debian 12)
+# 2. Configuration du dépôt Docker officiel
 log_info "Configuration du dépôt Docker..."
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
@@ -71,11 +72,11 @@ fi
 
 log_info "=== Installation de Docker terminée ! ==="
 
-# 7. Lancement automatique de setup-docker.sh si disponible
-if [ -f "/home/$USER_LOGIN/setup-docker.sh" ]; then
-    log_info "Lancement de setup-docker.sh..."
-    su - "$USER_LOGIN" -c "cd /home/$USER_LOGIN && bash setup-docker.sh"
+# 7. Lancement automatique de 3-setup-docker.sh si disponible
+if [ -f "/home/$USER_LOGIN/3-setup-docker.sh" ]; then
+    log_info "Lancement de 3-setup-docker.sh..."
+    su - "$USER_LOGIN" -c "cd /home/$USER_LOGIN && bash 3-setup-docker.sh"
 else
-    log_warn "setup-docker.sh non trouvé. Lance-le manuellement depuis ton utilisateur."
+    log_warn "3-setup-docker.sh non trouvé. Lance-le manuellement depuis ton utilisateur."
     log_warn "IMPORTANT : Tape 'exit' et reconnecte-toi pour activer les droits Docker."
 fi
