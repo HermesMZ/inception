@@ -76,13 +76,23 @@ apt-get autoremove -y && apt-get clean
 log_info "=== VM prête pour l'étape suivante (docker.sh) ==="
 log_info "Utilisateur configuré : $USER_TO_ADD"
 
-# 6. Lancement automatique de install-docker.sh si disponible
-if [ -f "/home/$USER_TO_ADD/2-install-docker.sh" ]; then
-    log_info "Lancement de 2-install-docker.sh..."
-    cd "/home/$USER_TO_ADD"
-    SUDO_USER="$USER_TO_ADD" bash 2-install-docker.sh
+# 6. Lancement automatique de 2-install-docker.sh
+# On cherche le fichier dans le home de l'utilisateur de manière récursive
+SCRIPT_2_PATH=$(find "/home/$USER_TO_ADD" -name "2-install-docker.sh" | head -n 1)
+
+if [ -n "$SCRIPT_2_PATH" ]; then
+    SCRIPT_DIR=$(dirname "$SCRIPT_2_PATH")
+    log_info "Script trouvé dans : $SCRIPT_DIR"
+    
+    # On se déplace dans le dossier pour que les chemins relatifs fonctionnent
+    cd "$SCRIPT_DIR"
+    
+    log_info "Lancement de 2-install-docker.sh en tant que root (via sudo env)..."
+    # On exporte SUDO_USER pour que le script 2 sache qui est l'humain derrière
+    SUDO_USER="$USER_TO_ADD" bash "2-install-docker.sh"
 else
-    log_warn "2-install-docker.sh non trouvé. Lance-le manuellement avec sudo."
+    log_warn "2-install-docker.sh non trouvé dans /home/$USER_TO_ADD."
+    log_warn "Vérifie que tu as bien cloné ton repo dans le home de $USER_TO_ADD."
 fi
 
 log_info "Virtual Box - A configurer dans les redirections de port de la VM :"

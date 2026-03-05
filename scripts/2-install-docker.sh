@@ -72,13 +72,4 @@ fi
 
 log_info "=== Installation de Docker terminée ! ==="
 
-su - "$USER_LOGIN"
 
-# # 7. Lancement automatique de 3-setup-docker.sh si disponible
-# if [ -f "/home/$USER_LOGIN/3-setup-docker.sh" ]; then
-#     log_info "Lancement de 3-setup-docker.sh..."
-#     su - "$USER_LOGIN" -c "cd /home/$USER_LOGIN && bash 3-setup-docker.sh"
-# else
-#     log_warn "3-setup-docker.sh non trouvé. Lance-le manuellement depuis ton utilisateur."
-#     log_warn "IMPORTANT : Tape 'exit' et reconnecte-toi pour activer les droits Docker."
-# fi
