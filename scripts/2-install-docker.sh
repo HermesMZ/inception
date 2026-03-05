@@ -72,4 +72,8 @@ fi
 
 log_info "=== Installation de Docker terminée ! ==="
 
+log_info "Virtual Box - A configurer dans les redirections de port de la VM :"
+log_info "SSH : 4242"
+log_info "HTTPS : 443"
 
+log_info "Lancement de la VM terminée. Connectez-vous avec : ssh -p 4242 $USER_TO_ADD@localhost"

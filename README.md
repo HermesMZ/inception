@@ -22,7 +22,6 @@ All services are orchestrated using Docker Compose and communicate through a cus
 
 ### Prerequisites
 - Virtual Machine Debian 12 (bookworm)
-- Gnome installed
 
 ### Installation
 

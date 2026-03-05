@@ -77,26 +77,18 @@ log_info "=== VM prête pour l'étape suivante (docker.sh) ==="
 log_info "Utilisateur configuré : $USER_TO_ADD"
 
 # 6. Lancement automatique de 2-install-docker.sh
-# On cherche le fichier dans le home de l'utilisateur de manière récursive
-SCRIPT_2_PATH=$(find "/home/$USER_TO_ADD" -name "2-install-docker.sh" | head -n 1)
+# On suppose que 2-install-docker.sh est dans le même dossier que ce script (1-install-vm.sh)
 
-if [ -n "$SCRIPT_2_PATH" ]; then
-    SCRIPT_DIR=$(dirname "$SCRIPT_2_PATH")
-    log_info "Script trouvé dans : $SCRIPT_DIR"
+SCRIPT_2="./2-install-docker.sh"
+
+if [ -f "$SCRIPT_2" ]; then
+    log_info "Script 2 trouvé dans le répertoire courant."
+    chmod +x "$SCRIPT_2"
     
-    # On se déplace dans le dossier pour que les chemins relatifs fonctionnent
-    cd "$SCRIPT_DIR"
-    
-    log_info "Lancement de 2-install-docker.sh en tant que root (via sudo env)..."
-    # On exporte SUDO_USER pour que le script 2 sache qui est l'humain derrière
-    SUDO_USER="$USER_TO_ADD" bash "2-install-docker.sh"
+    log_info "Lancement de 2-install-docker.sh..."
+    # On passe USER_TO_ADD en tant que SUDO_USER pour le script suivant
+    SUDO_USER="$USER_TO_ADD" bash "$SCRIPT_2"
 else
-    log_warn "2-install-docker.sh non trouvé dans /home/$USER_TO_ADD."
-    log_warn "Vérifie que tu as bien cloné ton repo dans le home de $USER_TO_ADD."
+    log_warn "Impossible de trouver $SCRIPT_2 dans $(pwd)."
+    log_warn "Assure-toi d'exécuter le script 1 depuis le dossier 'scripts/' de ton projet."
 fi
-
-log_info "Virtual Box - A configurer dans les redirections de port de la VM :"
-log_info "SSH : 4242"
-log_info "HTTPS : 443"
-
-log_info "Lancement de la VM terminée. Connectez-vous avec : ssh -p 4242 $USER_TO_ADD@localhost"
