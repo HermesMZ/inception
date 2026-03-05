@@ -1,44 +1,92 @@
-NAME = inception
-COMPOSE = docker compose -f srcs/docker-compose.yml -p $(NAME)
+# =================               VARIABLES                =================
+NAME          = inception
+SCRIPTS_DIR   = ./scripts
+COMPOSE       = docker compose -f srcs/docker-compose.yml -p $(NAME)
 
+# Couleurs pour le terminal
+GREEN         = \033[0;32m
+YELLOW        = \033[0;33m
+RED           = \033[0;31m
+NC            = \033[0m
+
+# =================                RÈGLES                  =================
+
+# La règle par défaut
 all: up
 
-up:
-	@chmod +x ./scripts/check_volumes.sh
-	@bash ./scripts/check_volumes.sh
-	$(COMPOSE) up --build -d
+# Construction et lancement
 
-down:
-	$(COMPOSE) down
+# La règle build : elle ne fait QUE construire les images
+build:
+	@echo "$(YELLOW)Construction des images Docker...$(NC)"
+	@$(COMPOSE) build
 
+# On utilise une dépendance vers le script pour plus de clarté
+up: setup_volumes build
+	@echo "$(GREEN)Démarrage des conteneurs Inception...$(NC)"
+	@$(COMPOSE) up -d
+	@echo "$(GREEN)Projet opérationnel !$(NC)"
+	@echo "$(YELLOW)Lancer 'make test' pour vérifier la conformité.$(NC)"
+	@echo "$(YELLOW)Open your browser at: $(NC)\033[4;32mhttps://$(USER).42.fr\033[0m"
+
+# Préparation des volumes (exécuté avant 'up')
+setup_volumes:
+	@echo "$(YELLOW)Vérification des volumes...$(NC)"
+	@chmod +x $(SCRIPTS_DIR)/check_volumes.sh
+	@bash $(SCRIPTS_DIR)/check_volumes.sh
+
+# Arrêt sans suppression
 stop:
-	$(COMPOSE) stop
+	@echo "$(YELLOW)Arrêt des conteneurs...$(NC)"
+	@$(COMPOSE) stop
 
+# Arrêt et suppression des conteneurs/réseaux
+down:
+	@echo "$(YELLOW)Suppression des conteneurs...$(NC)"
+	@$(COMPOSE) down
+
+# Si les conteneurs n'existent pas, Docker Compose les créera quand même.
+start:
+	@echo "$(YELLOW)Démarrage des conteneurs existants...$(NC)"
+	@$(COMPOSE) start
+
+# Applique les changements de config
 restart:
-	$(COMPOSE) down
-	$(COMPOSE) up --build -d
+	@echo "$(YELLOW)Application des modifications et redémarrage...$(NC)"
+	@$(COMPOSE) up -d --build
 
+# Tests de conformité
 test:
-	@chmod +x ./scripts/test-inception.sh
-	@bash ./scripts/test-inception.sh
+	@echo "$(YELLOW)Lancement des tests de conformité...$(NC)"
+	@chmod +x $(SCRIPTS_DIR)/test-inception.sh
+	@bash $(SCRIPTS_DIR)/test-inception.sh
+
+
+status:
+	@echo "$(YELLOW)--- État des services Inception ---$(NC)"
+	@$(COMPOSE) ps --format "table {{.Name}}\t{{.Status}}"
+
+# Monitoring
+ps:
+	@$(COMPOSE) ps
 
 logs:
-	$(COMPOSE) logs
+	@$(COMPOSE) logs -f
 
-logs-f:
-	$(COMPOSE) logs -f
-
-ps:
-	$(COMPOSE) ps
-
+# Nettoyage partiel (Conteneurs, Réseaux, Volumes Docker)
 clean:
-	$(COMPOSE) down -v
+	@echo "$(RED)Nettoyage des conteneurs et volumes Docker...$(NC)"
+	@$(COMPOSE) down -v
 
+# Nettoyage Total (Fichiers sur le host + Images + Cache)
 fclean: clean
-	@echo "Nettoyage des volumes via un conteneur temporaire..."
-	docker run --rm -v /home/$(USER)/data:/data alpine sh -c "rm -rf /data/*"
+	@echo "$(RED)Nettoyage profond des données sur le host...$(NC)"
+	@# Utilisation de -v pour monter le dossier parent et tout raser proprement
+	@docker run --rm -v /home/$(USER)/data:/data alpine sh -c "rm -rf /data/*"
+	@echo "$(RED)Suppression de toutes les images et du cache...$(NC)"
 	@docker system prune -af
+	@echo "$(GREEN)Nettoyage terminé. Site vierge.$(NC)"
 
 re: fclean all
 
-.PHONY: all up down stop restart logs logs-f ps clean fclean re
+.PHONY: all up setup_volumes down stop restart test ps logs clean fclean re
