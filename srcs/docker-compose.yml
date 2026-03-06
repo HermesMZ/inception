@@ -17,11 +17,11 @@ services:
       - db_password
       - db_root_password
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 3306 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$$(cat /run/secrets/db_root_password) --skip-ssl"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
       
   wordpress:
     build: ./requirements/wordpress
@@ -137,9 +137,9 @@ services:
       - wordpress_data:/home/ftpuser/wordpress
     networks:
       - inception
-    depends_on:
-      wordpress:
-        condition: service_healthy
+    # depends_on:
+    #   wordpress:
+    #     condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 21 || exit 1"]
       interval: 10s
@@ -177,7 +177,7 @@ services:
     networks:
       - inception
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/api/status || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/system/status"]
       interval: 10s
       timeout: 5s
       retries: 3

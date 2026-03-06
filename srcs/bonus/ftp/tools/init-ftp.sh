@@ -3,11 +3,10 @@ set -e
 
 echo "============ START INIT FTP ==============="
 
-# --- FONCTION POUR RÉCUPÉRER LES SECRETS ---
+# Récupérer le mot de passe FTP depuis les secrets Docker
 get_secret() {
     local var_name=$1
     local file_var_name="${var_name}_FILE"
-    
     if [ -n "${!file_var_name:-}" ]; then
         cat "${!file_var_name}"
     else
@@ -15,39 +14,35 @@ get_secret() {
     fi
 }
 
-# Récupération du mot de passe
-# Note: Dans ton docker-compose, le secret s'appelle ftp_password
-# et la variable d'env FTP_PASSWORD_FILE pointe vers /run/secrets/ftp_password
 FTP_PASS=$(get_secret "FTP_PASSWORD")
 
-if [ -n "$FTP_PASS" ]; then
-    echo "Configuration de l'utilisateur FTP: ftpuser"
-    
-    # Définir le mot de passe de l'utilisateur ftpuser
-    echo "ftpuser:$FTP_PASS" | chpasswd
-    
-    echo "Utilisateur FTP configuré avec succès"
-else
-    echo "Erreur : FTP_PASSWORD ou FTP_PASSWORD_FILE non défini"
+if [ -z "$FTP_PASS" ]; then
+    echo "Erreur : FTP_PASSWORD ou FTP_PASSWORD_FILE non défini."
     exit 1
 fi
 
-# S'assurer que le répertoire WordPress est accessible
-echo "Attente du répertoire WordPress..."
-# ... (ton code de boucle while reste identique)
+# Configurer le mot de passe de l'utilisateur FTP
+echo "ftpuser:$FTP_PASS" | chpasswd
+echo "Utilisateur FTP configuré avec succès."
 
-if [ -d "/home/ftpuser/wordpress" ]; then
-    # Attention: dans Inception, l'utilisateur PHP est souvent www-data (UID 33)
-    # et le FTP est ftpuser. Pour que les deux puissent écrire, 
-    # vérifie bien tes UID/GID ou utilise les permissions de groupe.
-    chown -R ftpuser:ftpuser /home/ftpuser/wordpress
-    chmod -R 755 /home/ftpuser/wordpress
-    echo "Répertoire WordPress monté et accessible"
-fi
+# Attendre que le répertoire WordPress soit monté
+while [ ! -d "/home/ftpuser/wordpress" ]; do
+    echo "En attente du montage du répertoire WordPress..."
+    sleep 1
+done
 
-# Préparation du dossier de run
+# Configurer les permissions
+chown -R ftpuser:ftpuser /home/ftpuser/wordpress
+chmod -R 755 /home/ftpuser/wordpress
+echo "Répertoire WordPress monté et accessible."
+
+# Préparer le dossier de run et les logs
 mkdir -p /var/run/vsftpd
 rm -f /var/run/vsftpd/vsftpd.pid
+touch /var/log/vsftpd.log
+chmod 644 /var/log/vsftpd.log
 
-echo "Démarrage de vsftpd..."
-exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
+# Démarrer vsftpd en affichant les logs en temps réel
+echo "Démarrage de vsftpd avec logs activés..."
+tail -f /var/log/vsftpd.log &
+exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf 

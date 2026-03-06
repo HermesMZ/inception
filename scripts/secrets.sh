@@ -2,8 +2,7 @@
 
 # Dossier de destination (Utilisation de chemin relatif pour la portabilité)
 # On part du principe que le script est dans inception/scripts/
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SECRETS_DIR="$SCRIPT_DIR/../srcs/secrets"
+SECRETS_DIR="../srcs/secrets"
 
 # Couleurs pour le terminal
 GREEN='\033[0;32m'

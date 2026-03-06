@@ -1,24 +1,32 @@
 FROM alpine:3.22
 
-# Installer vsftpd pour FTP
+# Installer vsftpd et les outils nécessaires
 RUN apk update && apk add --no-cache \
     vsftpd \
     netcat-openbsd \
-	bash
+    libcap \
+    bash
 
-# Créer le répertoire pour l'utilisateur FTP
+# Donner les capacités nécessaires au binaire vsftpd
+RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/vsftpd
+
+# Créer le répertoire pour l'utilisateur FTP et le répertoire de logs
 RUN mkdir -p /home/ftpuser/wordpress && \
+    mkdir -p /var/log && \
     adduser -D -h /home/ftpuser ftpuser && \
     chown -R ftpuser:ftpuser /home/ftpuser
 
-# Copier la configuration vsftpd
+# Copier la configuration vsftpd et le script d'initialisation
 COPY conf/vsftpd.conf /etc/vsftpd/vsftpd.conf
-
-# Copier le script d'initialisation
 COPY tools/init-ftp.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-ftp.sh
 
-# Port FTP contrôle et ports passifs
+# Créer le répertoire chroot vide requis par vsftpd
+RUN mkdir -p /var/run/vsftpd/empty && \
+    chown root:root /var/run/vsftpd/empty && \
+    chmod 555 /var/run/vsftpd/empty
+
+# Exposer les ports FTP
 EXPOSE 21 21000-21010
 
-ENTRYPOINT ["/usr/local/bin/init-ftp.sh"]
+ENTRYPOINT ["/bin/bash", "/usr/local/bin/init-ftp.sh"]

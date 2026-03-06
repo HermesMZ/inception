@@ -70,10 +70,14 @@ if ! grep -q "$USER_LOGIN.42.fr" /etc/hosts 2>/dev/null; then
     echo "127.0.0.1 $USER_LOGIN.42.fr" >> /etc/hosts
 fi
 
+# 7. Secrets
+log_info "Génération des secrets..."
+bash ./secrets.sh
 log_info "=== Installation de Docker terminée ! ==="
 
 log_info "Virtual Box - A configurer dans les redirections de port de la VM :"
 log_info "SSH : 4242"
 log_info "HTTPS : 443"
+log_info "Mettre à jour le fichier srcs/.env.example"
 
 log_info "Lancement de la VM terminée. Connectez-vous avec : ssh -p 4242 $USER_TO_ADD@localhost"
