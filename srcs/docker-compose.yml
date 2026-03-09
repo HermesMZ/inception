@@ -131,15 +131,16 @@ services:
       - "21000-21010:21000-21010"
     environment:
       FTP_PASSWORD_FILE: /run/secrets/ftp_password
+      DOMAIN_NAME: ${DOMAIN_NAME}
     secrets:
       - ftp_password
     volumes:
       - wordpress_data:/home/ftpuser/wordpress
     networks:
       - inception
-    # depends_on:
-    #   wordpress:
-    #     condition: service_healthy
+    depends_on:
+      wordpress:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 21 || exit 1"]
       interval: 10s

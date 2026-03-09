@@ -91,22 +91,22 @@ wp config create \
     --dbuser="${WORDPRESS_DB_USER}" \
     --dbpass="${DB_PASSWORD}" \
     --dbhost="${WORDPRESS_DB_HOST}" \
-    --path=/var/www/html --allow-root --force
+    --path=/var/www/html --allow-root --force --quiet
 
 # On injecte les Salts et Redis en bouclant sur tes secrets
 # C'est ici que ta boucle "KEYS" du début prend tout son sens
 for key in AUTH_KEY SECURE_AUTH_KEY LOGGED_IN_KEY NONCE_KEY AUTH_SALT SECURE_AUTH_SALT LOGGED_IN_SALT NONCE_SALT; do
     var_name="WORDPRESS_$key"
-    wp config set "$key" "${!var_name}" --allow-root
+    wp config set "$key" "${!var_name}" --allow-root --quiet
 done
 
 # Configuration spécifique Redis et URL
-wp config set WP_HOME "https://${DOMAIN_NAME}" --allow-root
-wp config set WP_SITEURL "https://${DOMAIN_NAME}" --allow-root
-wp config set WP_REDIS_HOST "${REDIS_HOST}" --allow-root
-wp config set WP_REDIS_PORT "${REDIS_PORT:-6379}" --raw --allow-root
-wp config set WP_REDIS_PASSWORD "${REDIS_PASSWORD}" --allow-root
-wp config set WP_REDIS_DATABASE 0 --raw --allow-root
+wp config set WP_HOME "https://${DOMAIN_NAME}" --allow-root --quiet
+wp config set WP_SITEURL "https://${DOMAIN_NAME}" --allow-root --quiet
+wp config set WP_REDIS_HOST "${REDIS_HOST}" --allow-root --quiet
+wp config set WP_REDIS_PORT "${REDIS_PORT:-6379}" --raw --allow-root --quiet
+wp config set WP_REDIS_PASSWORD "${REDIS_PASSWORD}" --allow-root --quiet
+wp config set WP_REDIS_DATABASE 0 --raw --allow-root --quiet
 
 chmod 644 /var/www/html/wp-config.php
 
@@ -124,7 +124,8 @@ if ! wp core is-installed --allow-root --path=/var/www/html 2>/dev/null; then
         --admin_password="${WORDPRESS_ADMIN_PASSWORD}" \
         --admin_email="${WORDPRESS_ADMIN_EMAIL}" \
         --allow-root \
-        --path=/var/www/html
+        --path=/var/www/html \
+        --quiet
     
     echo "WordPress installé avec succès !"
     
@@ -135,7 +136,8 @@ if ! wp core is-installed --allow-root --path=/var/www/html 2>/dev/null; then
             --role=author \
             --user_pass="${WORDPRESS_USER_PASSWORD}" \
             --allow-root \
-            --path=/var/www/html
+            --path=/var/www/html \
+            --quiet
         echo "Utilisateur ${WORDPRESS_USER} créé avec succès !"
     fi
 else

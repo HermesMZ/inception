@@ -3,10 +3,11 @@ set -e
 
 echo "============ START INIT FTP ==============="
 
-# Récupérer le mot de passe FTP depuis les secrets Docker
+# --- FONCTION POUR RÉCUPÉRER LES SECRETS ---
 get_secret() {
     local var_name=$1
     local file_var_name="${var_name}_FILE"
+    
     if [ -n "${!file_var_name:-}" ]; then
         cat "${!file_var_name}"
     else
@@ -14,10 +15,11 @@ get_secret() {
     fi
 }
 
+# Récupération du mot de passe FTP
 FTP_PASS=$(get_secret "FTP_PASSWORD")
 
 if [ -z "$FTP_PASS" ]; then
-    echo "Erreur : FTP_PASSWORD ou FTP_PASSWORD_FILE non défini."
+    echo "Erreur : Le mot de passe FTP est vide."
     exit 1
 fi
 
@@ -25,24 +27,36 @@ fi
 echo "ftpuser:$FTP_PASS" | chpasswd
 echo "Utilisateur FTP configuré avec succès."
 
-# Attendre que le répertoire WordPress soit monté
-while [ ! -d "/home/ftpuser/wordpress" ]; do
-    echo "En attente du montage du répertoire WordPress..."
+# Attendre que WordPress soit prêt et que le volume soit monté
+echo "Waiting for WordPress volume to be ready..."
+timeout=60
+while [ $timeout -gt 0 ]; do
+    if [ -f "/home/ftpuser/wordpress/wp-config.php" ]; then
+        echo "WordPress volume is ready!"
+        break
+    fi
     sleep 1
+    timeout=$((timeout - 1))
 done
 
-# Configurer les permissions
-chown -R ftpuser:ftpuser /home/ftpuser/wordpress
-chmod -R 755 /home/ftpuser/wordpress
-echo "Répertoire WordPress monté et accessible."
+if [ $timeout -eq 0 ]; then
+    echo "ERROR: WordPress volume not found after 60 seconds"
+    exit 1
+fi
 
-# Préparer le dossier de run et les logs
-mkdir -p /var/run/vsftpd
-rm -f /var/run/vsftpd/vsftpd.pid
-touch /var/log/vsftpd.log
-chmod 644 /var/log/vsftpd.log
+# Créer un dossier uploads writable dans wordpress
+mkdir -p /home/ftpuser/wordpress/wp-content/uploads
+chown ftpuser:ftpuser /home/ftpuser/wordpress/wp-content/uploads
+chmod 755 /home/ftpuser/wordpress/wp-content/uploads
 
-# Démarrer vsftpd en affichant les logs en temps réel
-echo "Démarrage de vsftpd avec logs activés..."
-tail -f /var/log/vsftpd.log &
-exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf 
+# Le home doit appartenir à root pour le chroot (sécurité vsftpd)
+chown root:root /home/ftpuser
+chmod 755 /home/ftpuser
+
+echo "Permissions configurées:"
+ls -la /home/ftpuser/
+echo "Uploads directory:"
+ls -la /home/ftpuser/wordpress/wp-content/ | grep uploads || echo "WARNING: uploads directory not visible in listing"
+
+echo "============ START VSFTPD ==============="
+exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
