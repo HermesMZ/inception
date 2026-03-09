@@ -31,83 +31,82 @@ while [ "$(docker ps | grep -c "starting")" -gt 0 ]; do
 done
 echo -e " ${GREEN}Ready!${NC}"
 
-# # ================= CHECKS =================
-# info "Checking Nginx TLS/SSL connectivity..."
-# DOMAIN_NAME=$(docker exec wordpress printenv DOMAIN_NAME)
-# # -k pour ignorer le certificat auto-signé, -I pour les headers
-# if curl -k -I https://"$DOMAIN_NAME" 2>/dev/null | grep -q "200 OK"; then
-#     ok "HTTPS is working on $DOMAIN_NAME"
-# else
-#     ko "HTTPS connection failed"
-# fi
+# ================= CHECKS =================
+info "Checking Nginx TLS/SSL connectivity..."
+DOMAIN_NAME=$(docker exec wordpress printenv DOMAIN_NAME)
+# -k pour ignorer le certificat auto-signé, -I pour les headers
+if curl -k -I https://"$DOMAIN_NAME" 2>/dev/null | grep -q "200 OK"; then
+    ok "HTTPS is working on $DOMAIN_NAME"
+else
+    ko "HTTPS connection failed"
+fi
 
-# info "Checking data persistence..."
-# # On crée un fichier dans le volume via le conteneur
-# docker exec wordpress touch /var/www/html/persistence_test
-# # On redémarre le conteneur
-# cd srcs
-# docker compose restart wordpress > /dev/null
-# cd ..
-# # On vérifie si le fichier est toujours là
-# if docker exec wordpress ls /var/www/html/persistence_test &>/dev/null; then
-#     ok "Volumes are persistent"
-#     docker exec wordpress rm /var/www/html/persistence_test
-# else
-#     ko "Volume data lost after restart"
-# fi
+info "Checking data persistence..."
+# On crée un fichier dans le volume via le conteneur
+docker exec wordpress touch /var/www/html/persistence_test
+# On redémarre le conteneur
+cd srcs
+docker compose restart wordpress > /dev/null
+cd ..
+# On vérifie si le fichier est toujours là
+if docker exec wordpress ls /var/www/html/persistence_test &>/dev/null; then
+    ok "Volumes are persistent"
+    docker exec wordpress rm /var/www/html/persistence_test
+else
+    ko "Volume data lost after restart"
+fi
 
-# info "Checking MariaDB network isolation..."
-# if [ "$(docker inspect mariadb --format='{{range $p, $conf := .NetworkSettings.Ports}}{{$p}}{{end}}')" == "" ]; then
-#     ok "MariaDB is isolated (no ports exposed)"
-# else
-#     ko "MariaDB exposes ports to the host!"
-# fi
+info "Checking MariaDB network isolation..."
+if [ "$(docker inspect mariadb --format='{{range $p, $conf := .NetworkSettings.Ports}}{{$p}}{{end}}')" == "" ]; then
+    ok "MariaDB is isolated (no ports exposed)"
+else
+    ko "MariaDB exposes ports to the host!"
+fi
 
-# # ================= WORDPRESS -> MARIADB =================
-# info "Checking wordpress to mariadb connection..."
+# ================= WORDPRESS -> MARIADB =================
+info "Checking wordpress to mariadb connection..."
 
-# # On récupère les secrets en lisant les fichiers directement dans le conteneur
-# DB_USER=$(docker exec wordpress printenv WORDPRESS_DB_USER)
-# DB_PASS=$(docker exec wordpress cat /run/secrets/db_password)
+# On récupère les secrets en lisant les fichiers directement dans le conteneur
+DB_USER=$(docker exec wordpress printenv WORDPRESS_DB_USER)
+DB_PASS=$(docker exec wordpress cat /run/secrets/db_password)
 
-# if docker exec wordpress mariadb \
-#     -hmariadb \
-#     -u"$DB_USER" \
-#     -p"$DB_PASS" \
-#     --ssl=0 \
-#     -e "SELECT 1" &>/dev/null; then
-#     ok "wordpress can connect to mariadb"
-# else
-#     ko "wordpress cannot connect to mariadb"
-# fi
+if docker exec wordpress mariadb \
+    -hmariadb \
+    -u"$DB_USER" \
+    -p"$DB_PASS" \
+    --ssl=0 \
+    -e "SELECT 1" &>/dev/null; then
+    ok "wordpress can connect to mariadb"
+else
+    ko "wordpress cannot connect to mariadb"
+fi
 
-# # ================= BONUS: REDIS =================
-# info "Checking redis availability..."
+# ================= BONUS: REDIS =================
+info "Checking redis availability..."
 
-# # On récupère le mot de passe root de Redis depuis le secret
-# REDIS_PASS=$(docker exec redis cat /run/secrets/redis_password)
+# On récupère le mot de passe root de Redis depuis le secret
+REDIS_PASS=$(docker exec redis cat /run/secrets/redis_password)
 
-# if docker exec redis redis-cli -a "$REDIS_PASS" ping 2>/dev/null \
-#   | grep -q "PONG"; then
-#     ok "Redis is reachable and responding"
-# else
-#     ko "Redis is NOT reachable"
-# fi
+if docker exec redis redis-cli -a "$REDIS_PASS" ping 2>/dev/null \
+  | grep -q "PONG"; then
+    ok "Redis is reachable and responding"
+else
+    ko "Redis is NOT reachable"
+fi
 
-# info "Checking wordpress to redis connection..."
+info "Checking wordpress to redis connection..."
 
-# # On utilise le même secret côté WordPress pour tester le lien
-# REDIS_PASS_WP=$(docker exec wordpress cat /run/secrets/redis_password)
+# On utilise le même secret côté WordPress pour tester le lien
+REDIS_PASS_WP=$(docker exec wordpress cat /run/secrets/redis_password)
 
-# if echo -e "AUTH $REDIS_PASS_WP\r\nPING\r\n" \
-#   | docker exec -i wordpress nc -w 2 redis 6379 \
-#   | grep -q "+PONG"; then
-#     ok "wordpress can reach redis on port 6379"
-# else
-#     ko "wordpress cannot reach redis"
-# fi
+if echo -e "AUTH $REDIS_PASS_WP\r\nPING\r\n" \
+  | docker exec -i wordpress nc -w 2 redis 6379 \
+  | grep -q "+PONG"; then
+    ok "wordpress can reach redis on port 6379"
+else
+    ko "wordpress cannot reach redis"
+fi
 
-# ...existing code...
 
 # ================= BONUS: FTP =================
 info "Checking FTP login and file transfer..."
@@ -169,8 +168,6 @@ else
     echo "$FTP_OUTPUT" | grep -E "(550|553|530|421)"
     echo "========================="
 fi
-
-# ...existing code...
 
 # ================= DONE =================
 echo
