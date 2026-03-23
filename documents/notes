@@ -1,0 +1,17 @@
+connection à adminer :
+Système: MySQL
+Serveur: mariadb
+Utilisateur: MYSQL_USER
+Mot de passe: MYSQL_PASSWORD
+Base de données: MYSQL_DATABASE
+
+connection à wp-admin
+Username: WORDPRESS_ADMIN_USER
+Password: WORDPRESS_ADMIN_PASSWORD
+
+probleme avec make et remake
+make logs à faire
+verifier le lien ftp
+revoir la logique de test-inception.sh
+
+user_doc.md verifier les acces ftp
