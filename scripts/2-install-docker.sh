@@ -72,7 +72,7 @@ fi
 
 # 7. Secrets
 log_info "Génération des secrets..."
-bash ./secrets.sh
+sudo -u "$USER_LOGIN" bash ./secrets.sh
 log_info "Mettre à jour le fichier srcs/.env.example"
 log_info "=== Installation de Docker terminée ! ==="
 
