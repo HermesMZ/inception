@@ -72,12 +72,8 @@ fi
 
 # 7. Secrets
 log_info "Génération des secrets..."
-<<<<<<< HEAD
-bash ./secrets.sh
-=======
 bash ./scripts/secrets.sh
 log_info "Mettre à jour le fichier srcs/.env.example"
->>>>>>> a77f561 (transfert)
 log_info "=== Installation de Docker terminée ! ==="
 
 log_info "Virtual Box - A configurer dans les redirections de port de la VM :"

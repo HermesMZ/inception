@@ -1,10 +1,5 @@
 #!/bin/bash
 
-<<<<<<< HEAD
-# Dossier de destination (Utilisation de chemin relatif pour la portabilité)
-# On part du principe que le script est dans inception/scripts/
-=======
->>>>>>> a77f561 (transfert)
 SECRETS_DIR="../srcs/secrets"
 
 # Couleurs pour le terminal
