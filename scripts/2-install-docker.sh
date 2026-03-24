@@ -72,6 +72,9 @@ fi
 
 # 7. Secrets
 log_info "Génération des secrets..."
+SECRETS_DIR="../srcs/secrets"
+mkdir -p "$SECRETS_DIR"
+chown -R "$USER_LOGIN":"$USER_LOGIN" "$SECRETS_DIR"
 sudo -u "$USER_LOGIN" bash ./secrets.sh
 log_info "Mettre à jour le fichier srcs/.env.example"
 log_info "=== Installation de Docker terminée ! ==="

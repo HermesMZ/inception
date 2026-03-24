@@ -1,7 +1,6 @@
 #!/bin/bash
 
 SECRETS_DIR="../srcs/secrets"
-SECRETS_OWNER="${SUDO_USER:-$USER}"
 
 # Couleurs pour le terminal
 GREEN='\033[0;32m'
@@ -57,10 +56,5 @@ fi
 chmod 600 "$SECRETS_DIR"/*.txt
 # Permission d'accès au dossier
 chmod 700 "$SECRETS_DIR"
-
-# Si lancé via sudo, on rend explicitement les secrets au vrai utilisateur
-if id -u "$SECRETS_OWNER" > /dev/null 2>&1; then
-    chown "$SECRETS_OWNER":"$SECRETS_OWNER" "$SECRETS_DIR" "$SECRETS_DIR"/*.txt
-fi
 
 echo -e "${GREEN}✅ Terminé. Secrets sécurisés générés dans : $SECRETS_DIR${NC}"
