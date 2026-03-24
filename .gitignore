@@ -1,2 +1,4 @@
 srcs/secrets
 poubelle/
+.env
+documents/
