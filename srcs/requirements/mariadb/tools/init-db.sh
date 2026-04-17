@@ -39,6 +39,7 @@ if [ ! -d "$DATA_DIR/mysql" ]; then
     cat > $TMP_SQL <<EOF
 USE mysql;
 FLUSH PRIVILEGES;
+DROP USER IF EXISTS '${MYSQL_USER}'@'localhost';
 -- Configure root with the secret
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASS}';
 -- Create your WordPress user for external access (%)

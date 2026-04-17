@@ -143,6 +143,20 @@ Equivalent to make fclean followed by make all. Use this for a completely fresh 
 - Password: See `secrets/db_password.txt`
 - Database: `wordpress`
 
+**Connect to the Container**:
+``
+docker exec -it mariadb bash
+
+``
+``
+mariadb -u mysqluser -p$(cat /run/secrets/db_password) --skip-ssl
+``
+``
+SHOW DATABASES;
+USE wordpress_db
+SHOW TABLES
+``
+
 ### Dashboard
 
 **URL**: `https://$USER.42.fr/dashboard`
