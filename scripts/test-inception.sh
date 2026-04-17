@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Script de test pour le projet Inception
-# Vérifie la connectivité TLS/SSL, la persistance des données, l'isolation réseau de MariaDB, la connexion entre WordPress et MariaDB, ainsi que les bonus Redis et FTP
-# Attend que les services aient fini de démarrer avant de lancer les tests
+# Test script for the Inception project
+# Checks TLS/SSL connectivity, data persistence, MariaDB network isolation,
+# the connection between WordPress and MariaDB, as well as Redis and FTP bonuses
+# Waits for services to finish starting before running tests
 
 # ================= COLORS =================
 GREEN="\033[0;32m"
@@ -34,7 +35,7 @@ echo -e " ${GREEN}Ready!${NC}"
 # ================= CHECKS =================
 info "Checking Nginx TLS/SSL connectivity..."
 DOMAIN_NAME=$(docker exec wordpress printenv DOMAIN_NAME)
-# -k pour ignorer le certificat auto-signé, -I pour les headers
+# -k to ignore self-signed certificate, -I for headers
 if curl -k -I https://"$DOMAIN_NAME" 2>/dev/null | grep -q "200 OK"; then
     ok "HTTPS is working on $DOMAIN_NAME"
 else
@@ -42,13 +43,13 @@ else
 fi
 
 info "Checking data persistence..."
-# On crée un fichier dans le volume via le conteneur
+# Create a file in the volume via the container
 docker exec wordpress touch /var/www/html/persistence_test
-# On redémarre le conteneur
+# Restart the container
 cd srcs
 docker compose restart wordpress > /dev/null
 cd ..
-# On vérifie si le fichier est toujours là
+# Check if the file is still there
 if docker exec wordpress ls /var/www/html/persistence_test &>/dev/null; then
     ok "Volumes are persistent"
     docker exec wordpress rm /var/www/html/persistence_test
@@ -66,7 +67,7 @@ fi
 # ================= WORDPRESS -> MARIADB =================
 info "Checking wordpress to mariadb connection..."
 
-# On récupère les secrets en lisant les fichiers directement dans le conteneur
+# Retrieve secrets by reading files directly in the container
 DB_USER=$(docker exec wordpress printenv WORDPRESS_DB_USER)
 DB_PASS=$(docker exec wordpress cat /run/secrets/db_password)
 
@@ -84,7 +85,7 @@ fi
 # ================= BONUS: REDIS =================
 info "Checking redis availability..."
 
-# On récupère le mot de passe root de Redis depuis le secret
+# Retrieve Redis root password from secret
 REDIS_PASS=$(docker exec redis cat /run/secrets/redis_password)
 
 if docker exec redis redis-cli -a "$REDIS_PASS" ping 2>/dev/null \
@@ -96,7 +97,7 @@ fi
 
 info "Checking wordpress to redis connection..."
 
-# On utilise le même secret côté WordPress pour tester le lien
+# Use the same secret on WordPress side to test the link
 REDIS_PASS_WP=$(docker exec wordpress cat /run/secrets/redis_password)
 
 if echo -e "AUTH $REDIS_PASS_WP\r\nPING\r\n" \
@@ -107,19 +108,18 @@ else
     ko "wordpress cannot reach redis"
 fi
 
-
 # ================= BONUS: FTP =================
 info "Checking FTP login and file transfer..."
 
 FTP_PASS=$(docker exec ftp cat /run/secrets/ftp_password)
 info "FTP password retrieved from secret"
 
-# Créer un fichier de test temporaire
+# Create a temporary test file
 TEST_FILE="test_ftp_upload.txt"
-echo "fichier txt envoyé et récupéré." > "$TEST_FILE"
+echo "text file sent and retrieved." > "$TEST_FILE"
 info "Test file created: $TEST_FILE"
 
-# Test de connexion et upload/download via FTP
+# Test connection and upload/download via FTP
 info "Starting FTP connection test..."
 FTP_OUTPUT=$(ftp -inv localhost 2>&1 <<EOF
 user ftpuser $FTP_PASS
@@ -141,21 +141,21 @@ echo "=================="
 if echo "$FTP_OUTPUT" | grep -q "226 Transfer complete"; then
     info "FTP transfer completed successfully"
     
-    # Vérifier que le fichier a été correctement téléchargé
+    # Check that the file was correctly downloaded
     if [ -f "new_$TEST_FILE" ]; then
         info "Downloaded file found at new_$TEST_FILE"
         
         CONTENT=$(cat "new_$TEST_FILE")
         info "Downloaded file content: '$CONTENT'"
         
-        if [ "$CONTENT" = "fichier txt envoyé et récupéré." ]; then
+        if [ "$CONTENT" = "text file sent and retrieved." ]; then
             ok "FTP upload and download successful"
             rm -f "$TEST_FILE" "$TEST_DIR/new_$TEST_FILE"
-            # Nettoyer le fichier sur le serveur FTP
+            # Clean up file on FTP server
             docker exec ftp rm -f /home/ftpuser/wordpress/wp-content/uploads/$TEST_FILE 2>/dev/null || true
             info "Cleanup completed"
         else
-            ko "FTP file content mismatch. Expected: 'fichier txt envoyé et récupéré.' Got: '$CONTENT'"
+            ko "FTP file content mismatch. Expected: 'text file sent and retrieved.' Got: '$CONTENT'"
         fi
     else
         ko "FTP download failed - file not found at new_$TEST_FILE"
@@ -172,13 +172,3 @@ fi
 # ================= DONE =================
 echo
 echo -e "${GREEN}All checks passed. Inception (with bonuses) is clean ✅${NC}"
-
-
-
-# info "Checking Adminer availability..."
-# if curl -k -I https://$(USER).42.fr/adminer 2>/dev/null | grep -q "200 OK" || \
-#    curl -k -I https://$(USER).42.fr:8080 2>/dev/null | grep -q "200 OK"; then
-#     ok "Adminer is reachable"
-# else
-#     ko "Adminer is unreachable"
-# fi

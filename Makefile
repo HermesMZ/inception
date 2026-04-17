@@ -9,77 +9,67 @@ NC            = \033[0m
 
 all: up
 
-# Construction et lancement
-
 build:
-	@echo "$(YELLOW)Construction des images Docker...$(NC)"
+	@echo "$(YELLOW)Constructing Docker images...$(NC)"
 	@$(COMPOSE) build
 
 up: setup_volumes build
-	@echo "$(GREEN)Démarrage des conteneurs Inception...$(NC)"
+	@echo "$(GREEN)Start Inception Containers...$(NC)"
 	@$(COMPOSE) up -d
-	@echo "$(GREEN)Projet opérationnel !$(NC)"
-	@echo "$(YELLOW)Lancer 'make test' pour vérifier la conformité.$(NC)"
+	@echo "$(GREEN)Projet operational !$(NC)"
+	@echo "$(YELLOW)Run 'make test' to test conformity.$(NC)"
 	@echo "$(YELLOW)Open your browser at: $(NC)\033[4;32mhttps://$(USER).42.fr\033[0m"
 
-# Préparation des volumes
 setup_volumes:
-	@echo "$(YELLOW)Vérification des volumes...$(NC)"
+	@echo "$(YELLOW)Checking volumes...$(NC)"
 	@chmod +x $(SCRIPTS_DIR)/check_volumes.sh
 	@bash $(SCRIPTS_DIR)/check_volumes.sh
 
-# Arrêt sans suppression
 stop:
-	@echo "$(YELLOW)Arrêt des conteneurs...$(NC)"
+	@echo "$(YELLOW)Stoping containers...$(NC)"
 	@$(COMPOSE) stop
 
-# Arrêt et suppression des conteneurs/réseaux
 down:
-	@echo "$(YELLOW)Suppression des conteneurs...$(NC)"
+	@echo "$(YELLOW)Removing containers...$(NC)"
 	@$(COMPOSE) down
 
-# Si les conteneurs n'existent pas, Docker Compose les créera quand même.
 start:
-	@echo "$(YELLOW)Démarrage des conteneurs existants...$(NC)"
+	@echo "$(YELLOW)Starting containers...$(NC)"
 	@$(COMPOSE) start
 
-# Applique les changements de config
 restart:
-	@echo "$(YELLOW)Application des modifications et redémarrage...$(NC)"
+	@echo "$(YELLOW)Update and restart...$(NC)"
 	@$(COMPOSE) up -d --build
 
-# Tests de conformité
 test:
-	@echo "$(YELLOW)Lancement des tests de conformité...$(NC)"
+	@echo "$(YELLOW)Conformity tests...$(NC)"
 	@chmod +x $(SCRIPTS_DIR)/test-inception.sh
 	@bash $(SCRIPTS_DIR)/test-inception.sh
 
 status:
-	@echo "$(YELLOW)--- État des services Inception ---$(NC)"
+	@echo "$(YELLOW)--- Inception services status ---$(NC)"
 	@$(COMPOSE) ps --format "table {{.Name}}\t{{.Status}}"
 
-# Monitoring
 ps:
 	@$(COMPOSE) ps
 
 logs:
 	@$(COMPOSE) logs -f
 
-# Nettoyage partiel (Conteneurs, Réseaux, Volumes Docker)
 clean:
-	@echo "$(RED)Nettoyage des conteneurs et volumes Docker...$(NC)"
+	@echo "$(RED)Cleaning containers and images...$(NC)"
 	@$(COMPOSE) down -v
 
-# Nettoyage Total (Fichiers sur le host + Images + Cache)
-# Création d'un conteneur temporaire qui monte le dossier data pour tout raser proprement, puis nettoyage des images et du cache Docker
-# ATTENTION : Cette commande supprimera TOUTES les données dans /home/$(USER)/data.
+# Full Cleanup (Host files + Images + Cache)
+# Create a temporary container that mounts the data folder to completely wipe it, then clean Docker images and cache
+# WARNING: This command will delete ALL data in /home/$(USER)/data.
 fclean: clean
-	@echo "$(RED)Nettoyage profond des données sur le host...$(NC)"
-	@# Utilisation de -v pour monter le dossier parent et tout raser proprement
+	@echo "$(RED)Deep cleaning data on the host...$(NC)"
+	@# Using -v to mount the parent folder and clean everything properly
 	@docker run --rm -v /home/$(USER)/data:/data alpine sh -c "rm -rf /data/*"
-	@echo "$(RED)Suppression de toutes les images et du cache...$(NC)"
+	@echo "$(RED)Removing all images and cache...$(NC)"
 	@docker system prune -af
-	@echo "$(GREEN)Nettoyage terminé. Site vierge.$(NC)"
+	@echo "$(GREEN)Cleanup complete. Fresh site.$(NC)"
 
 re: fclean all
 

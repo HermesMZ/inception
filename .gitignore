@@ -1,4 +1,3 @@
-srcs/secrets
-poubelle/
+.
 srcs/.env
-documents/
+secrets

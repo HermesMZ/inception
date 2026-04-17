@@ -37,7 +37,8 @@ cp srcs/.env.example srcs/.env
 Then edit it with your settings(domain name, users, etc.).
 - Generate secrets:
 ```bash
-./scripts/secrets.sh
+cd scripts
+./secrets.sh
 ```
 This creates password files in `srcs/secrets/` and sets proper permissions on .txt files.
 
@@ -55,6 +56,7 @@ This creates password files in `srcs/secrets/` and sets proper permissions on .t
 - `make fclean` - Full cleanup including volumes
 - `make logs` - Show logs from all services
 - `make ps` - List running containers
+- `make test` - Tests des containers
 
 ### Accessing the services
 

@@ -1,47 +1,47 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "===== Initialisation MariaDB ====="
+echo "===== Initializing MariaDB ====="
 
 DATA_DIR="/var/lib/mysql"
 
-# --- FONCTION POUR RÉCUPÉRER LES SECRETS ---
+# --- FUNCTION TO RETRIEVE SECRETS ---
 get_secret() {
     local var_name=$1
     local file_var_name="${var_name}_FILE"
     
-    # On vérifie si la variable _FILE existe (priorité aux secrets)
+    # Check if the _FILE variable exists (secrets have priority)
     if [ -n "${!file_var_name:-}" ]; then
         cat "${!file_var_name}"
     else
-        # Sinon on prend la variable classique
+        # Otherwise use the regular variable
         echo "${!var_name:-}"
     fi
 }
 
-# On récupère nos mots de passe
+# Retrieve passwords
 ROOT_PASS=$(get_secret "MYSQL_ROOT_PASSWORD")
 USER_PASS=$(get_secret "MYSQL_PASSWORD")
 
-# Vérification de sécurité
+# Security check
 if [ -z "$ROOT_PASS" ]; then
-    echo "Erreur : MYSQL_ROOT_PASSWORD_FILE ou MYSQL_ROOT_PASSWORD non défini."
+    echo "Error: MYSQL_ROOT_PASSWORD_FILE or MYSQL_ROOT_PASSWORD is not set."
     exit 1
 fi
 
-# Initialiser la base de données si elle n'est pas déjà initialisée
+# Initialize the database if it is not already initialized
 if [ ! -d "$DATA_DIR/mysql" ]; then
     echo "Initializing system tables..."
     mariadb-install-db --user=mysqluser --datadir="$DATA_DIR" --skip-test-db
 
-    # 1. On crée un fichier SQL temporaire
+    # 1. Create a temporary SQL file
     TMP_SQL="/tmp/init.sql"
     cat > $TMP_SQL <<EOF
 USE mysql;
 FLUSH PRIVILEGES;
--- On configure root avec le secret
+-- Configure root with the secret
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASS}';
--- On crée ton utilisateur WordPress pour l'extérieur (%)
+-- Create your WordPress user for external access (%)
 CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
 CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${USER_PASS}';
 GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
@@ -49,14 +49,14 @@ FLUSH PRIVILEGES;
 EOF
 
     echo "Running temporary MariaDB to execute setup..."
-    # 2. On lance MariaDB avec l'option --init-file
-    # Cela exécute le SQL avant même d'ouvrir le réseau
+    # 2. Start MariaDB with the --init-file option
+    # This executes the SQL before opening the network
     mariadbd --user=mysqluser --datadir="$DATA_DIR" --bootstrap < $TMP_SQL
     
     rm -f $TMP_SQL
 fi
 
-# Création du fichier .my.cnf pour le healthcheck (très important !)
+# Create .my.cnf file for healthcheck (very important!)
 cat > /root/.my.cnf <<EOF
 [client]
 user=root

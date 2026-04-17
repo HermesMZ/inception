@@ -3,7 +3,7 @@ set -e
 
 echo "============ START INIT FTP ==============="
 
-# --- FONCTION POUR RÉCUPÉRER LES SECRETS ---
+# --- FUNCTION TO RETRIEVE SECRETS ---
 get_secret() {
     local var_name=$1
     local file_var_name="${var_name}_FILE"
@@ -15,19 +15,19 @@ get_secret() {
     fi
 }
 
-# Récupération du mot de passe FTP
+# Retrieve FTP password
 FTP_PASS=$(get_secret "FTP_PASSWORD")
 
 if [ -z "$FTP_PASS" ]; then
-    echo "Erreur : Le mot de passe FTP est vide."
+    echo "Error: FTP password is empty."
     exit 1
 fi
 
-# Configurer le mot de passe de l'utilisateur FTP
+# Set FTP user password
 echo "ftpuser:$FTP_PASS" | chpasswd
-echo "Utilisateur FTP configuré avec succès."
+echo "FTP user successfully configured."
 
-# Attendre que WordPress soit prêt et que le volume soit monté
+# Wait for WordPress to be ready and the volume to be mounted
 echo "Waiting for WordPress volume to be ready..."
 timeout=60
 while [ $timeout -gt 0 ]; do
@@ -44,16 +44,16 @@ if [ $timeout -eq 0 ]; then
     exit 1
 fi
 
-# Créer un dossier uploads writable dans wordpress
+# Create a writable uploads directory in WordPress
 mkdir -p /home/ftpuser/wordpress/wp-content/uploads
 chown ftpuser:ftpuser /home/ftpuser/wordpress/wp-content/uploads
 chmod 755 /home/ftpuser/wordpress/wp-content/uploads
 
-# Le home doit appartenir à root pour le chroot (sécurité vsftpd)
+# Home must belong to root for chroot (vsftpd security)
 chown root:root /home/ftpuser
 chmod 755 /home/ftpuser
 
-echo "Permissions configurées:"
+echo "Configured permissions:"
 ls -la /home/ftpuser/
 echo "Uploads directory:"
 ls -la /home/ftpuser/wordpress/wp-content/ | grep uploads || echo "WARNING: uploads directory not visible in listing"

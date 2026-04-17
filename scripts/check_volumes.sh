@@ -1,32 +1,32 @@
 #!/bin/bash
 set -e
 
-# Script de vérification des volumes pour le projet Inception
-# Lancé depuis Make
-# Ce script s'assure que les volumes de données pour MariaDB et WordPress sont correctement créés et configurés avec les permissions adéquates
-# Retirer les volumes et les recréer peut être nécessaire en cas de problèmes de permissions ou de données corrompues
-# Remplacer et/ou supprimer portainer en fonction des bonus choisis
+# Volume verification script for the Inception project
+# Launched from Make
+# This script ensures that data volumes for MariaDB and WordPress are properly created and configured with the correct permissions
+# Removing and recreating volumes may be necessary in case of permission issues or corrupted data
+# Replace and/or remove Portainer depending on the chosen bonuses
 
-# Répertoires sur le host
+# Directories on the host
 BASE_DATA="/home/$USER/data"
 VOLUMES=("mariadb" "wordpress" "portainer")
 
-echo "=== Préparation des volumes (UID Mapping: 1000) ==="
+echo "=== Preparing volumes (UID Mapping: 1000) ==="
 
 if [ ! -d "$BASE_DATA" ]; then
-	echo "Création du répertoire de base $BASE_DATA..."
+	echo "Creating base directory $BASE_DATA..."
 	mkdir -p "$BASE_DATA"
 	chmod -R 755 "$BASE_DATA"
 fi
-# Création des répertoires par l'utilisateur courant (UID 1000)
+
+# Create directories as the current user (UID 1000)
 for vol in "${VOLUMES[@]}"; do
     if [ ! -d "$BASE_DATA/$vol" ]; then
-        echo "Création du dossier $vol..."
+        echo "Creating folder $vol..."
         mkdir -p "$BASE_DATA/$vol"
 		chmod -R 755 "$BASE_DATA/$vol"
     fi
 done
 
-
-echo "[OK] Volumes synchronisés avec l'UID $(id -u)"
-echo "=== Prêt pour docker compose up ==="
+echo "[OK] Volumes synchronized with UID $(id -u)"
+echo "=== Ready for docker compose up ==="
